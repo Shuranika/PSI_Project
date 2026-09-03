@@ -258,4 +258,83 @@ fn prompt_retry() {
 }
 
 
+#[cfg(test)]
+mod tests {
+    use super::*;
 
+    #[test]
+    fn generated_ticket_is_within_valid_range() {
+        for _ in 0..1_000 {
+            let ticket = generate_ticket_number();
+            assert!((1..=20).contains(&ticket));
+        }
+    }
+
+
+    #[test]
+    fn generated_ticket_is_always_between_one_and_twenty() {
+        for _ in 0..10_000 {
+            assert!((1..=20).contains(&generate_ticket_number()));
+        }
+    }
+
+    #[test]
+    fn next_empty_row_skips_contiguous_records() {
+        let mut workbook = umya_spreadsheet::new_file();
+        let sheet = workbook.get_sheet_mut(0);
+
+        for row in 2..=5 {
+            sheet
+                .get_cell_mut(&format!("A{row}"))
+                .set_value(format!("Student {row}"));
+        }
+
+        assert_eq!(find_next_empty_row(&workbook), 6);
+    }
+
+    #[test]
+    fn next_empty_row_handles_unicode_values() {
+        let mut workbook = umya_spreadsheet::new_file();
+        let sheet = workbook.get_sheet_mut(0);
+
+        sheet.get_cell_mut("A2").set_value("Иванов");
+        sheet.get_cell_mut("A3").set_value("学生");
+
+        assert_eq!(find_next_empty_row(&workbook), 4);
+    }
+
+
+        #[test]
+        fn ticket_number_never_exceeds_twenty() {
+            for _ in 0..10_000 {
+                assert!(generate_ticket_number() <= 20);
+            }
+        }
+        #[test]
+        fn ticket_number_is_never_zero() {
+            for _ in 0..10_000 {
+                assert!(generate_ticket_number() >= 1);
+            }
+        }
+        #[test]
+        fn next_row_is_after_one_record() {
+            let mut workbook = umya_spreadsheet::new_file();
+            workbook
+                .get_sheet_mut(0)
+                .get_cell_mut("A2")
+                .set_value("Student");
+            assert_eq!(find_next_empty_row(&workbook), 3);
+        }
+   #[test]
+    fn data_in_other_columns_does_not_affect_result() {
+        let mut workbook = umya_spreadsheet::new_file();
+        let sheet = workbook.get_sheet_mut(0);
+
+        sheet.get_cell_mut("B2").set_value("Ivan");
+        sheet.get_cell_mut("C2").set_value("15");
+        sheet.get_cell_mut("D2").set_value("2025-01-01");
+
+        assert_eq!(find_next_empty_row(&workbook), 2);
+    }
+
+}
