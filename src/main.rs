@@ -4,6 +4,7 @@ use crossterm::terminal;
 use rand::Rng;
 use std::io::{self, Write};
 use std::path::Path;
+use std::process::Command;
 use umya_spreadsheet::Spreadsheet;
 
 fn main() {
@@ -23,6 +24,10 @@ fn main() {
         if !wait_for_input() {
             println!("\nДо свидания!");
             break;
+        }
+
+        if close_excel_workbook("journal.xlsx") {
+            println!("Журнал был закрыт в MS Excel перед записью.");
         }
 
         // Ввод фамилии с валидацией
@@ -125,14 +130,18 @@ fn input_field(prompt: &str) -> String {
         // Обрезаем пробелы
         let trimmed = input.trim().to_string();
 
-        // Валидация: не принимаем пустые строки
-        if trimmed.is_empty() {
-            println!("❌ Ошибка: поле не может быть пустым. Попробуйте снова.");
+        if !is_valid_name(&trimmed) {
+            println!("❌ Ошибка: используйте только буквы. Попробуйте снова.");
             continue;
         }
 
         return trimmed;
     }
+}
+
+/// Проверяет, что имя содержит только буквы Unicode.
+fn is_valid_name(value: &str) -> bool {
+    !value.is_empty() && value.chars().all(char::is_alphabetic)
 }
 
 /// Генерирует случайный номер билета от 1 до 20 включительно
@@ -160,8 +169,10 @@ fn save_to_excel(last_name: &str, first_name: &str, ticket_number: u32) {
                 Ok(wb) => wb,
                 Err(e) => {
                     println!("❌ Ошибка при открытии файла: {:?}", e);
-                    println!("   Возможно, журнал открыт в MS Excel.");
-                    prompt_retry();
+                    if !close_excel_workbook(file_path) {
+                        println!("   Возможно, журнал открыт не в MS Excel или не удалось его закрыть.");
+                        prompt_retry();
+                    }
                     continue;
                 }
             }
@@ -198,12 +209,57 @@ fn save_to_excel(last_name: &str, first_name: &str, ticket_number: u32) {
             Err(e) => {
                 // Ошибка при сохранении (возможно, файл заблокирован)
                 println!("❌ Ошибка при сохранении файла: {:?}", e);
-                println!("   Проверьте, что файл journal.xlsx не открыт в MS Excel");
-                prompt_retry();
-                // Цикл повторится, попытка записи будет повторена
+                if close_excel_workbook(file_path) {
+                    println!("   Файл был закрыт в MS Excel. Повторяем сохранение...");
+                } else {
+                    println!("   Не удалось автоматически закрыть файл в MS Excel.");
+                    prompt_retry();
+                }
             }
         }
     }
+}
+
+/// Закрывает только journal.xlsx в уже запущенном MS Excel без сохранения изменений.
+/// Возвращает true, если нужная книга была найдена и закрыта.
+#[cfg(windows)]
+fn close_excel_workbook(file_path: &str) -> bool {
+    let script = r#"
+$target = [IO.Path]::GetFullPath($env:TICKET_GENERATOR_XLSX)
+try {
+    $excel = [Runtime.InteropServices.Marshal]::GetActiveObject('Excel.Application')
+} catch {
+    exit 2
+}
+
+$closed = $false
+foreach ($workbook in @($excel.Workbooks)) {
+    try {
+        if ([IO.Path]::GetFullPath($workbook.FullName) -ieq $target) {
+            $workbook.Close($false)
+            $closed = $true
+            break
+        }
+    } finally {
+        [void][Runtime.InteropServices.Marshal]::ReleaseComObject($workbook)
+    }
+}
+
+[void][Runtime.InteropServices.Marshal]::ReleaseComObject($excel)
+if ($closed) { exit 0 } else { exit 1 }
+"#;
+
+    Command::new("powershell.exe")
+        .args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script])
+        .env("TICKET_GENERATOR_XLSX", file_path)
+        .status()
+        .map(|status| status.success())
+        .unwrap_or(false)
+}
+
+#[cfg(not(windows))]
+fn close_excel_workbook(_file_path: &str) -> bool {
+    false
 }
 
 /// Находит номер следующей пустой строки в листе
@@ -335,6 +391,20 @@ mod tests {
         sheet.get_cell_mut("D2").set_value("2025-01-01");
 
         assert_eq!(find_next_empty_row(&workbook), 2);
+    }
+
+    #[test]
+    fn names_accept_latin_and_cyrillic_letters() {
+        assert!(is_valid_name("Smith"));
+        assert!(is_valid_name("Иванов"));
+    }
+
+    #[test]
+    fn names_reject_digits_and_symbols() {
+        assert!(!is_valid_name("Smith2"));
+        assert!(!is_valid_name("12345"));
+        assert!(!is_valid_name("Иванов!"));
+        assert!(!is_valid_name("   "));
     }
 
 }
