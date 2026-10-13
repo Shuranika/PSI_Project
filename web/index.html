@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ticket Generator</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+    :root { --ink:#162b31; --muted:#708187; --line:#d8e4e3; --paper:#f7faf8; --teal:#0c7772; --mint:#c5eee1; --coral:#e77b5c; --shadow:0 24px 60px rgba(26,66,66,.12); }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); font:15px 'DM Sans',sans-serif; background:radial-gradient(circle at 12% 18%,#d8f1e8 0 18%,transparent 42%),linear-gradient(135deg,#eef7f3,#fffaf4 62%,#f2e8dc); }
+    .shell { max-width:1120px; margin:auto; padding:30px 28px 54px; }
+    .nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:76px; }
+    .brand { display:flex; align-items:center; gap:11px; font:700 16px 'Space Grotesk',sans-serif; letter-spacing:.09em; }
+    .mark { display:grid; place-items:center; width:38px; height:38px; border-radius:12px; color:white; background:var(--ink); box-shadow:0 7px 16px rgba(22,43,49,.2); }
+    .nav-note { color:var(--muted); font-size:12px; letter-spacing:.11em; text-transform:uppercase; }
+    .hero { display:grid; grid-template-columns:1fr 390px; gap:84px; align-items:center; }
+    .eyebrow { color:var(--teal); font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; }
+    h1 { max-width:650px; margin:13px 0 20px; font:700 clamp(42px,6vw,76px)/.98 'Space Grotesk',sans-serif; letter-spacing:-.045em; }
+    .intro { max-width:520px; margin:0; color:var(--muted); font-size:17px; line-height:1.7; }
+    .card { padding:28px; border:1px solid rgba(216,228,227,.9); border-radius:22px; background:rgba(255,255,255,.77); box-shadow:var(--shadow); backdrop-filter:blur(14px); }
+    .card h2 { margin:0 0 6px; font:600 21px 'Space Grotesk',sans-serif; }
+    .card-sub { margin:0 0 24px; color:var(--muted); line-height:1.5; }
+    label { display:block; margin:17px 0 7px; color:var(--muted); font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
+    select,input { width:100%; padding:13px 14px; border:1px solid var(--line); border-radius:10px; outline:0; color:var(--ink); background:#fff; font:inherit; }
+    select:focus,input:focus { border-color:var(--teal); box-shadow:0 0 0 3px rgba(12,119,114,.12); }
+    button { width:100%; margin-top:24px; padding:15px 18px; border:0; border-radius:11px; cursor:pointer; color:white; background:var(--teal); font:700 14px 'DM Sans',sans-serif; letter-spacing:.04em; transition:transform .2s,background .2s; }
+    button:hover:not(:disabled) { transform:translateY(-2px); background:#095f5b; }
+    button:disabled { cursor:not-allowed; opacity:.45; }
+    .stats { display:flex; gap:26px; margin-top:66px; }
+    .stat { min-width:125px; padding-top:15px; border-top:2px solid var(--ink); }
+    .stat strong { display:block; font:700 27px 'Space Grotesk',sans-serif; }
+    .stat span { color:var(--muted); font-size:11px; letter-spacing:.09em; }
+    .message { min-height:20px; margin-top:14px; color:var(--coral); font-size:13px; line-height:1.4; }
+    .result { display:none; margin-top:30px; padding:28px; border-radius:20px; color:white; background:var(--ink); box-shadow:var(--shadow); }
+    .result.show { display:block; animation:rise .45s ease both; }
+    .result small { color:var(--mint); font-size:11px; font-weight:700; letter-spacing:.14em; }
+    .number { margin:6px 0 9px; font:700 74px/.9 'Space Grotesk',sans-serif; }
+    .result-meta { color:#b9ccc9; }
+    .questions { display:grid; gap:9px; margin-top:22px; }
+    .question { padding:13px; border-radius:10px; color:#e9f3ef; background:rgba(255,255,255,.09); line-height:1.45; }
+    .question b { margin-right:9px; color:var(--mint); }
+    @keyframes rise { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+    @media (max-width:780px) { .shell{padding:22px 18px 40px}.nav{margin-bottom:48px}.hero{grid-template-columns:1fr;gap:34px}h1{font-size:50px}.stats{margin-top:38px}.nav-note{display:none} }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <nav class="nav"><div class="brand"><span class="mark">TG</span> ГЕНЕРАТОР БИЛЕТОВ</div><span class="nav-note">Экзаменационная сессия</span></nav>
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Экзаменационная сессия</div>
+        <h1>Билет для каждого студента.</h1>
+        <p class="intro">Выберите группу и студента, чтобы назначить билет. Каждый результат сразу сохраняется в журнал.</p>
+        <div class="stats"><div class="stat"><strong id="group-count">-</strong><span>ГРУППЫ</span></div><div class="stat"><strong id="ticket-count">-</strong><span>БИЛЕТЫ</span></div><div class="stat"><strong id="student-count">-</strong><span>СТУДЕНТЫ В ГРУППЕ</span></div></div>
+      </div>
+      <div class="card">
+        <h2>Назначить билет</h2><p class="card-sub">Первый билет выбирается случайно. При повторном выборе студент получает прежний номер.</p>
+        <label for="group">1 / Группа</label><select id="group"><option value="">Выберите группу</option></select>
+        <label for="student">2 / Студент</label><select id="student" disabled><option value="">Сначала выберите группу</option></select>
+        <button id="generate" disabled>СГЕНЕРИРОВАТЬ БИЛЕТ  &rarr;</button>
+        <div class="message" id="message" role="alert" aria-live="polite"></div>
+      </div>
+    </section>
+    <section class="result" id="result" role="dialog" aria-modal="true" aria-labelledby="result-title" aria-live="polite"><small>РЕЗУЛЬТАТ СОХРАНЁН</small><h2 id="result-title">Ваш билет № <span class="number" id="ticket-number">--</span></h2><div class="result-meta" id="result-meta"></div><div class="questions" id="questions"></div><button id="close-result" type="button">ВЫБРАТЬ ДРУГОГО СТУДЕНТА</button><div class="result-meta">Нажмите Esc, чтобы вернуться к выбору</div></section>
+  </main>
+  <script>
+    const group = document.querySelector('#group'), student = document.querySelector('#student'), generate = document.querySelector('#generate'), message = document.querySelector('#message'), result = document.querySelector('#result');
+    const setMessage = text => message.textContent = text || '';
+    function closeResult() { result.classList.remove('show'); student.value = ''; generate.disabled = true; student.focus(); }
+    document.querySelector('#close-result').addEventListener('click', closeResult);
+    document.addEventListener('keydown', event => { if (event.key === 'Escape' && result.classList.contains('show')) closeResult(); });
+    const option = (value, text) => { const item = document.createElement('option'); item.value = value; item.textContent = text; return item; };
+    async function request(url, options) { const response = await fetch(url, options); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Request failed'); return data; }
+    async function load() { try { const data = await request('/api/bootstrap'); data.groups.forEach(name => group.append(option(name, name))); document.querySelector('#group-count').textContent = data.groups.length; document.querySelector('#ticket-count').textContent = data.ticket_count; } catch (error) { setMessage(error.message); } }
+    group.addEventListener('change', async () => { student.replaceChildren(option('', 'Выберите студента')); student.disabled = true; generate.disabled = true; setMessage(''); document.querySelector('#student-count').textContent = '-'; if (!group.value) return; try { const students = await request('/api/groups/' + encodeURIComponent(group.value) + '/students'); students.forEach(item => student.append(option(JSON.stringify(item), item.last_name + ' ' + item.first_name))); student.disabled = students.length === 0; document.querySelector('#student-count').textContent = students.length; if (students.length === 0) setMessage('В этой группе нет студентов.'); } catch (error) { setMessage(error.message); } });
+    student.addEventListener('change', () => { generate.disabled = !student.value; setMessage(''); });
+    generate.addEventListener('click', async () => { const selected = JSON.parse(student.value); generate.disabled = true; generate.textContent = 'СОХРАНЕНИЕ...'; setMessage(''); try { const data = await request('/api/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({group:group.value,last_name:selected.last_name,first_name:selected.first_name}) }); document.querySelector('#ticket-number').textContent = data.ticket.number; document.querySelector('#result-meta').textContent = data.result.student.last_name + ' ' + data.result.student.first_name + ' / ' + data.result.group + (data.result.is_repeat ? ' / повторное назначение' : ' / первое назначение'); const questions = document.querySelector('#questions'); questions.replaceChildren(...data.ticket.questions.slice(0,3).map((text,index) => { const row = document.createElement('div'); row.className='question'; row.innerHTML='<b>0'+(index+1)+'</b>'; row.append(document.createTextNode(text)); return row; })); result.classList.add('show'); } catch (error) { setMessage(error.message); } finally { generate.disabled = !student.value; generate.textContent = 'СГЕНЕРИРОВАТЬ БИЛЕТ  →'; } });
+    load();
+  </script>
+</body>
+</html>

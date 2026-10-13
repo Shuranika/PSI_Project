@@ -1,1 +1,8 @@
 target/
+students.xlsx
+tickets.docx
+results.xlsx
+journal.xlsx
+error_output.txt
+chromedriver*.exe
+/test_env/
